@@ -17,14 +17,44 @@ export default function Auth() {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  const validateEmail = (email: string) => {
+    // Basic email validation regex
+    const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return re.test(email.toLowerCase());
+  };
+
+  const validatePassword = (password: string) => {
+    return password.length >= 6;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate email and password before submission
+    if (!validateEmail(email)) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!validatePassword(password)) {
+      toast({
+        title: "Invalid Password",
+        description: "Password must be at least 6 characters long",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
       if (isSignUp) {
-        const { error: signUpError } = await supabase.auth.signUp({
-          email,
+        const { data, error: signUpError } = await supabase.auth.signUp({
+          email: email.trim(),
           password,
           options: {
             data: {
@@ -33,26 +63,36 @@ export default function Auth() {
           },
         });
 
-        if (signUpError) throw signUpError;
+        if (signUpError) {
+          if (signUpError.message.includes('email_address_invalid')) {
+            throw new Error('Invalid email address. Please check your email format.');
+          }
+          throw signUpError;
+        }
 
-        // Update profile with additional information
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({
-            full_name: fullName,
-            website_url: websiteUrl,
-          })
-          .eq('email', email);
+        if (data?.user) {
+          // Update profile with additional information
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .update({
+              full_name: fullName,
+              website_url: websiteUrl,
+            })
+            .eq('id', data.user.id);
 
-        if (profileError) throw profileError;
+          if (profileError) throw profileError;
 
-        toast({
-          title: "Success!",
-          description: "Please check your email to verify your account.",
-        });
+          toast({
+            title: "Success!",
+            description: "Your account has been created. You can now sign in.",
+          });
+          
+          // Switch to sign in mode after successful registration
+          setIsSignUp(false);
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({
-          email,
+          email: email.trim(),
           password,
         });
 
@@ -97,6 +137,7 @@ export default function Auth() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              minLength={6}
             />
           </div>
 
