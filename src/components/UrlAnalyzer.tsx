@@ -68,13 +68,12 @@ const UrlAnalyzer = () => {
       }, 500);
 
       // Call your crawl API endpoint
-      const response = await fetch('/crawl', {
+      const response = await fetch('/api/crawl', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url }),
       });
+      
 
       clearInterval(progressInterval);
       setProgress(100);
