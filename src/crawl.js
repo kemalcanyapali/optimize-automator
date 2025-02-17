@@ -1,12 +1,11 @@
-// crawl.js
-const express = require('express');
-const axios = require('axios');
-const cheerio = require('cheerio');
+// src/crawl.js
+import express from 'express';
+import axios from 'axios';
+import { load } from 'cheerio';
 
 const app = express();
 app.use(express.json());
 
-// Endpoint to crawl a URL and list links
 app.post('/crawl', async (req, res) => {
   const { url } = req.body;
 
@@ -19,8 +18,8 @@ app.post('/crawl', async (req, res) => {
     const response = await axios.get(url);
     const html = response.data;
 
-    // Load the HTML into Cheerio
-    const $ = cheerio.load(html);
+    // Load the HTML into Cheerio using the named import 'load'
+    const $ = load(html);
 
     // Array to hold extracted links
     const links = [];
@@ -41,7 +40,6 @@ app.post('/crawl', async (req, res) => {
   }
 });
 
-// Start the server on a port (e.g., 3000)
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Crawl server running on port ${PORT}`);
