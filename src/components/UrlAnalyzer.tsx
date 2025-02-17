@@ -9,9 +9,43 @@ import ResultsDisplay from '@/components/ResultsDisplay';
 
 interface CrawlResult {
   url: string;
-  title?: string;
-  content?: string;
+  crawled_data?: string[]; // array of crawled link strings
 }
+
+const CrawledLinkItem = ({ link }: { link: CrawlResult }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="border rounded p-3 my-2">
+      <div className="flex justify-between items-center">
+        <div className="text-primary font-medium">{link.url}</div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          {isOpen ? "Hide Links" : "Show Links"}
+        </Button>
+      </div>
+      {isOpen && link.crawled_data && (
+        <ul className="mt-2 space-y-1 pl-4">
+          {link.crawled_data.map((l, idx) => (
+            <li key={idx} className="text-sm text-gray-700">
+              <a
+                href={l}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:underline"
+              >
+                {l}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+};
 
 const UrlAnalyzer = () => {
   const { toast } = useToast();
@@ -20,7 +54,6 @@ const UrlAnalyzer = () => {
   const [progress, setProgress] = useState(0);
   const [analysisData, setAnalysisData] = useState<any>(null);
   const [crawledLinks, setCrawledLinks] = useState<CrawlResult[]>([]);
-  const [showLinks, setShowLinks] = useState(false);
 
   useEffect(() => {
     loadCrawlResults();
@@ -32,15 +65,10 @@ const UrlAnalyzer = () => {
         .from('crawl_results')
         .select('*')
         .order('created_at', { ascending: false });
-
       if (error) throw error;
-
       if (data) {
-        const results = data.map((result: any) => ({
-          ...(result.crawled_data || {}), // ensure it's an object
-          url: result.url,
-        }));
-        setCrawledLinks(results);
+        // Assuming each row has 'url' and 'crawled_data' as a JSON array.
+        setCrawledLinks(data as CrawlResult[]);
       }
     } catch (error) {
       console.error('Error loading crawl results:', error);
@@ -57,7 +85,6 @@ const UrlAnalyzer = () => {
       });
       return;
     }
-
     setIsAnalyzing(true);
     setProgress(0);
     setAnalysisData(null);
@@ -66,7 +93,7 @@ const UrlAnalyzer = () => {
       const progressInterval = setInterval(() => {
         setProgress(prev => Math.min(prev + 2, 90));
       }, 500);
-      
+
       // Call your backend crawl API endpoint
       const response = await fetch('/api/crawl', {
         method: 'POST',
@@ -86,7 +113,7 @@ const UrlAnalyzer = () => {
           .from('crawl_results')
           .insert({
             url,
-            crawled_data: result,
+            crawled_data: result.links, // assuming your API returns { url, links }
           });
 
         if (dbError) throw dbError;
@@ -135,7 +162,7 @@ const UrlAnalyzer = () => {
               required
             />
           </div>
-          
+
           {isAnalyzing && (
             <div className="space-y-2">
               <Progress value={progress} className="w-full" />
@@ -155,35 +182,15 @@ const UrlAnalyzer = () => {
         </form>
       </Card>
 
-      {/* Crawled Links Section with Dropdown */}
+      {/* Display crawled links for each crawled URL */}
       {crawledLinks.length > 0 && (
         <Card className="w-full max-w-xl p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold">Crawled Links</h3>
-            <Button 
-              onClick={() => setShowLinks(!showLinks)} 
-              variant="outline" 
-              size="sm"
-            >
-              {showLinks ? "Hide Links" : "Show Links"}
-            </Button>
+          <h3 className="text-lg font-semibold mb-4">Crawled Links</h3>
+          <div className="space-y-4">
+            {crawledLinks.map((link, index) => (
+              <CrawledLinkItem key={index} link={link} />
+            ))}
           </div>
-          {showLinks && (
-            <ul className="space-y-2">
-              {crawledLinks.map((link, index) => (
-                <li key={index} className="p-3 bg-gray-50 rounded-lg">
-                  <a 
-                    href={link.url} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="text-primary hover:underline"
-                  >
-                    {link.title || link.url}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          )}
         </Card>
       )}
 
