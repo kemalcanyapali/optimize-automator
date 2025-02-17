@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { FirecrawlService } from '@/utils/FirecrawlService';
 import { supabase } from '@/integrations/supabase/client';
 import ResultsDisplay from '@/components/ResultsDisplay';
 
@@ -21,7 +20,6 @@ const UrlAnalyzer = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [apiKey, setApiKey] = useState('');
-  const [showApiKeyInput, setShowApiKeyInput] = useState(!FirecrawlService.getApiKey());
   const [analysisData, setAnalysisData] = useState<any>(null);
   const [crawledLinks, setCrawledLinks] = useState<CrawlResult[]>([]);
 
@@ -61,23 +59,6 @@ const UrlAnalyzer = () => {
       return;
     }
 
-    const isValid = await FirecrawlService.testApiKey(apiKey);
-    if (isValid) {
-      FirecrawlService.saveApiKey(apiKey);
-      setShowApiKeyInput(false);
-      toast({
-        title: "Success",
-        description: "API key saved successfully",
-      });
-    } else {
-      toast({
-        title: "Error",
-        description: "Invalid API key",
-        variant: "destructive",
-      });
-    }
-  };
-
   const handleAnalysis = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!url) {
@@ -97,8 +78,6 @@ const UrlAnalyzer = () => {
       const progressInterval = setInterval(() => {
         setProgress(prev => Math.min(prev + 2, 90));
       }, 500);
-
-      const result = await FirecrawlService.crawlWebsite(url);
       
       clearInterval(progressInterval);
       setProgress(100);
@@ -140,32 +119,6 @@ const UrlAnalyzer = () => {
       setIsAnalyzing(false);
     }
   };
-
-  if (showApiKeyInput) {
-    return (
-      <Card className="w-full max-w-xl p-6 backdrop-blur-sm bg-white/30 border border-gray-200 rounded-xl shadow-lg">
-        <form onSubmit={handleApiKeySubmit} className="space-y-6">
-          <div className="space-y-2">
-            <label htmlFor="apiKey" className="text-sm font-medium text-gray-700">
-              Firecrawl API Key
-            </label>
-            <Input
-              id="apiKey"
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              className="w-full"
-              placeholder="Enter your Firecrawl API key"
-              required
-            />
-          </div>
-          <Button type="submit" className="w-full">
-            Save API Key
-          </Button>
-        </form>
-      </Card>
-    );
-  }
 
   return (
     <div className="space-y-6">
