@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { FirecrawlService } from '@/utils/FirecrawlService';
+import ResultsDisplay from '@/components/ResultsDisplay';
 
 const UrlAnalyzer = () => {
   const { toast } = useToast();
