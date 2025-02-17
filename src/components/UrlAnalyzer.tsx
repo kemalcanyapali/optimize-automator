@@ -20,6 +20,7 @@ const UrlAnalyzer = () => {
   const [progress, setProgress] = useState(0);
   const [analysisData, setAnalysisData] = useState<any>(null);
   const [crawledLinks, setCrawledLinks] = useState<CrawlResult[]>([]);
+  const [showLinks, setShowLinks] = useState(false);
 
   useEffect(() => {
     loadCrawlResults();
@@ -36,9 +37,9 @@ const UrlAnalyzer = () => {
 
       if (data) {
         const results = data.map((result: any) => ({
-          ...(result.crawled_data && typeof result.crawled_data === 'object' ? result.crawled_data : {}),
+          ...(result.crawled_data || {}), // ensure it's an object
           url: result.url,
-        }));        
+        }));
         setCrawledLinks(results);
       }
     } catch (error) {
@@ -62,30 +63,25 @@ const UrlAnalyzer = () => {
     setAnalysisData(null);
 
     try {
-      // Simulate progress
       const progressInterval = setInterval(() => {
         setProgress(prev => Math.min(prev + 2, 90));
       }, 500);
-
-      // Call your crawl API endpoint
+      
+      // Call your backend crawl API endpoint
       const response = await fetch('/api/crawl', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url }),
       });
       
-
       clearInterval(progressInterval);
       setProgress(100);
 
       if (response.ok) {
         const result = await response.json();
-
-        // Assume result is structured as { url, links }
-        // Optionally, set additional analysis data if returned
         setAnalysisData(result);
 
-        // Store crawl results in the database
+        // Store crawl results in Supabase
         const { error: dbError } = await supabase
           .from('crawl_results')
           .insert({
@@ -95,7 +91,6 @@ const UrlAnalyzer = () => {
 
         if (dbError) throw dbError;
 
-        // Reload crawl results
         await loadCrawlResults();
 
         toast({
@@ -160,32 +155,37 @@ const UrlAnalyzer = () => {
         </form>
       </Card>
 
-      {/* Crawled Links Section */}
-{/* Crawled Links Section */}
-{crawledLinks.length > 0 ? (
-  <Card className="w-full max-w-xl p-6">
-    <h3 className="text-xl font-semibold mb-4">Crawled Links</h3>
-    <ul className="space-y-3">
-      {crawledLinks.map((link, index) => (
-        <li key={index} className="p-4 bg-gray-50 rounded-md shadow-sm hover:bg-gray-100 transition">
-          <a
-            href={link.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary text-base font-medium hover:underline"
-          >
-            {link.title || link.url}
-          </a>
-        </li>
-      ))}
-    </ul>
-  </Card>
-) : (
-  <Card className="w-full max-w-xl p-6">
-    <p className="text-center text-gray-600">No crawled links available yet.</p>
-  </Card>
-)}
-
+      {/* Crawled Links Section with Dropdown */}
+      {crawledLinks.length > 0 && (
+        <Card className="w-full max-w-xl p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold">Crawled Links</h3>
+            <Button 
+              onClick={() => setShowLinks(!showLinks)} 
+              variant="outline" 
+              size="sm"
+            >
+              {showLinks ? "Hide Links" : "Show Links"}
+            </Button>
+          </div>
+          {showLinks && (
+            <ul className="space-y-2">
+              {crawledLinks.map((link, index) => (
+                <li key={index} className="p-3 bg-gray-50 rounded-lg">
+                  <a 
+                    href={link.url} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-primary hover:underline"
+                  >
+                    {link.title || link.url}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      )}
 
       {analysisData && (
         <ResultsDisplay isVisible={true} analysisData={analysisData} />
