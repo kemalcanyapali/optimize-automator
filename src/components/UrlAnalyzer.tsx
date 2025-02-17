@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
@@ -14,6 +13,7 @@ const UrlAnalyzer = () => {
   const [progress, setProgress] = useState(0);
   const [apiKey, setApiKey] = useState('');
   const [showApiKeyInput, setShowApiKeyInput] = useState(!FirecrawlService.getApiKey());
+  const [analysisData, setAnalysisData] = useState<any>(null);
 
   const handleApiKeySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,11 +56,20 @@ const UrlAnalyzer = () => {
 
     setIsAnalyzing(true);
     setProgress(0);
+    setAnalysisData(null);
 
     try {
+      const progressInterval = setInterval(() => {
+        setProgress(prev => Math.min(prev + 2, 90));
+      }, 500);
+
       const result = await FirecrawlService.crawlWebsite(url);
       
+      clearInterval(progressInterval);
+      setProgress(100);
+
       if (result.success) {
+        setAnalysisData(result.data.processedData);
         toast({
           title: "Analysis Complete",
           description: "Website analysis has been completed successfully!",
@@ -80,7 +89,6 @@ const UrlAnalyzer = () => {
       });
     } finally {
       setIsAnalyzing(false);
-      setProgress(100);
     }
   };
 
@@ -111,41 +119,47 @@ const UrlAnalyzer = () => {
   }
 
   return (
-    <Card className="w-full max-w-xl p-6 backdrop-blur-sm bg-white/30 border border-gray-200 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl">
-      <form onSubmit={handleAnalysis} className="space-y-6">
-        <div className="space-y-2">
-          <label htmlFor="url" className="text-sm font-medium text-gray-700">
-            Website URL
-          </label>
-          <Input
-            id="url"
-            type="url"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            className="w-full transition-all duration-200 focus:ring-2 focus:ring-primary"
-            placeholder="https://example.com"
-            required
-          />
-        </div>
-        
-        {isAnalyzing && (
+    <div className="space-y-6">
+      <Card className="w-full max-w-xl p-6 backdrop-blur-sm bg-white/30 border border-gray-200 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl">
+        <form onSubmit={handleAnalysis} className="space-y-6">
           <div className="space-y-2">
-            <Progress value={progress} className="w-full" />
-            <p className="text-sm text-gray-500 text-center">
-              Analyzing website... {progress}%
-            </p>
+            <label htmlFor="url" className="text-sm font-medium text-gray-700">
+              Website URL
+            </label>
+            <Input
+              id="url"
+              type="text"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              className="w-full transition-all duration-200 focus:ring-2 focus:ring-primary"
+              placeholder="example.com"
+              required
+            />
           </div>
-        )}
+          
+          {isAnalyzing && (
+            <div className="space-y-2">
+              <Progress value={progress} className="w-full" />
+              <p className="text-sm text-gray-500 text-center">
+                Analyzing website... {progress}%
+              </p>
+            </div>
+          )}
 
-        <Button
-          type="submit"
-          disabled={isAnalyzing}
-          className="w-full bg-primary hover:bg-primary/90 text-white transition-all duration-200"
-        >
-          {isAnalyzing ? "Analyzing..." : "Start Analysis"}
-        </Button>
-      </form>
-    </Card>
+          <Button
+            type="submit"
+            disabled={isAnalyzing}
+            className="w-full bg-primary hover:bg-primary/90 text-white transition-all duration-200"
+          >
+            {isAnalyzing ? "Analyzing..." : "Start Analysis"}
+          </Button>
+        </form>
+      </Card>
+
+      {analysisData && (
+        <ResultsDisplay isVisible={true} analysisData={analysisData} />
+      )}
+    </div>
   );
 };
 
