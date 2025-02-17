@@ -1,46 +1,36 @@
-// src/crawl.js
-import express from 'express';
+// /api/crawl.js
+
 import axios from 'axios';
 import { load } from 'cheerio';
 
-const app = express();
-app.use(express.json());
-
-app.post('/crawl', async (req, res) => {
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method Not Allowed' });
+    return;
+  }
+  
   const { url } = req.body;
-
   if (!url) {
-    return res.status(400).json({ error: 'Please provide a URL.' });
+    res.status(400).json({ error: 'URL is required' });
+    return;
   }
 
   try {
-    // Fetch the HTML content from the given URL
     const response = await axios.get(url);
     const html = response.data;
-
-    // Load the HTML into Cheerio using the named import 'load'
     const $ = load(html);
-
-    // Array to hold extracted links
     const links = [];
 
-    // Extract all anchor tags and their href attributes
-    $('a').each((index, element) => {
-      const href = $(element).attr('href');
+    $('a').each((i, el) => {
+      const href = $(el).attr('href');
       if (href) {
         links.push(href);
       }
     });
 
-    // Return the list of links
-    res.json({ url, links });
+    res.status(200).json({ url, links });
   } catch (error) {
-    console.error('Error fetching URL:', error);
-    res.status(500).json({ error: 'Failed to fetch or parse the URL.' });
+    console.error('Error crawling URL:', error);
+    res.status(500).json({ error: 'Failed to crawl URL' });
   }
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Crawl server running on port ${PORT}`);
-});
+}
