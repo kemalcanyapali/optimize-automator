@@ -161,21 +161,31 @@ const UrlAnalyzer = () => {
       </Card>
 
       {/* Crawled Links Section */}
-      {crawledLinks.length > 0 && (
-        <Card className="w-full max-w-xl p-6">
-          <h3 className="text-lg font-semibold mb-4">Crawled Links</h3>
-          <div className="space-y-2">
-            {crawledLinks.map((link, index) => (
-              <div key={index} className="p-3 bg-gray-50 rounded-lg">
-                <a href={link.url} target="_blank" rel="noopener noreferrer" 
-                   className="text-primary hover:underline">
-                  {link.title || link.url}
-                </a>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
+{/* Crawled Links Section */}
+{crawledLinks.length > 0 ? (
+  <Card className="w-full max-w-xl p-6">
+    <h3 className="text-xl font-semibold mb-4">Crawled Links</h3>
+    <ul className="space-y-3">
+      {crawledLinks.map((link, index) => (
+        <li key={index} className="p-4 bg-gray-50 rounded-md shadow-sm hover:bg-gray-100 transition">
+          <a
+            href={link.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary text-base font-medium hover:underline"
+          >
+            {link.title || link.url}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </Card>
+) : (
+  <Card className="w-full max-w-xl p-6">
+    <p className="text-center text-gray-600">No crawled links available yet.</p>
+  </Card>
+)}
+
 
       {analysisData && (
         <ResultsDisplay isVisible={true} analysisData={analysisData} />
