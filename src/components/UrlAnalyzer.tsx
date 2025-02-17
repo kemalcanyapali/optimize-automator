@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
@@ -19,7 +18,6 @@ const UrlAnalyzer = () => {
   const [url, setUrl] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [apiKey, setApiKey] = useState('');
   const [analysisData, setAnalysisData] = useState<any>(null);
   const [crawledLinks, setCrawledLinks] = useState<CrawlResult[]>([]);
 
@@ -37,27 +35,16 @@ const UrlAnalyzer = () => {
       if (error) throw error;
 
       if (data) {
-        const results = data.map(result => ({
-          ...result.crawled_data,
-          url: result.url
-        }));
+        const results = data.map((result: any) => ({
+          ...(result.crawled_data && typeof result.crawled_data === 'object' ? result.crawled_data : {}),
+          url: result.url,
+        }));        
         setCrawledLinks(results);
       }
     } catch (error) {
       console.error('Error loading crawl results:', error);
     }
   };
-
-  const handleApiKeySubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!apiKey) {
-      toast({
-        title: "Error",
-        description: "Please enter a valid API key",
-        variant: "destructive",
-      });
-      return;
-    }
 
   const handleAnalysis = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,22 +62,36 @@ const UrlAnalyzer = () => {
     setAnalysisData(null);
 
     try {
+      // Simulate progress
       const progressInterval = setInterval(() => {
         setProgress(prev => Math.min(prev + 2, 90));
       }, 500);
-      
+
+      // Call your crawl API endpoint
+      const response = await fetch('/crawl', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url }),
+      });
+
       clearInterval(progressInterval);
       setProgress(100);
 
-      if (result.success) {
-        setAnalysisData(result.data.processedData);
+      if (response.ok) {
+        const result = await response.json();
+
+        // Assume result is structured as { url, links }
+        // Optionally, set additional analysis data if returned
+        setAnalysisData(result);
 
         // Store crawl results in the database
         const { error: dbError } = await supabase
           .from('crawl_results')
           .insert({
             url,
-            crawled_data: result.data
+            crawled_data: result,
           });
 
         if (dbError) throw dbError;
@@ -103,13 +104,15 @@ const UrlAnalyzer = () => {
           description: "Website analysis has been completed successfully!",
         });
       } else {
+        const errorResult = await response.json();
         toast({
           title: "Error",
-          description: result.error || "Failed to analyze website",
+          description: errorResult.error || "Failed to analyze website",
           variant: "destructive",
         });
       }
     } catch (error) {
+      console.error("Error during analysis:", error);
       toast({
         title: "Error",
         description: "An error occurred during analysis",
