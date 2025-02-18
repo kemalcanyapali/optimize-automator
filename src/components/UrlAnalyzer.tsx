@@ -20,8 +20,6 @@ const CrawledLinkItem = ({ link }: { link: CrawlResult }) => {
       <div className="flex justify-between items-center">
         <div className="text-primary font-medium">{link.url}</div>
         <Button
-          variant="outline"
-          size="sm"
           onClick={() => setIsOpen(!isOpen)}
         >
           {isOpen ? "Hide Links" : "Show Links"}
@@ -56,8 +54,20 @@ const UrlAnalyzer = () => {
   const [crawledLinks, setCrawledLinks] = useState<CrawlResult[]>([]);
 
   useEffect(() => {
-    loadCrawlResults();
+    async function fetchCrawlData() {
+      const { data, error } = await supabase
+        .from('crawl_data')
+        .select('*');
+      if (error) {
+        console.error("Error fetching data:", error);
+      } else {
+        console.log("Fetched crawl data:", data); // Add this line
+        setCrawledData(data);
+      }
+    }
+    fetchCrawlData();
   }, []);
+  
 
   const loadCrawlResults = async () => {
     try {
@@ -182,17 +192,19 @@ const UrlAnalyzer = () => {
         </form>
       </Card>
 
-      {/* Display crawled links for each crawled URL */}
-      {crawledLinks.length > 0 && (
-        <Card className="w-full max-w-xl p-6">
-          <h3 className="text-lg font-semibold mb-4">Crawled Links</h3>
-          <div className="space-y-4">
-            {crawledLinks.map((link, index) => (
-              <CrawledLinkItem key={index} link={link} />
-            ))}
-          </div>
-        </Card>
-      )}
+      {Array.isArray(crawledLinks) && crawledLinks.length > 0 ? (
+  <Card className="w-full max-w-xl p-6">
+    <h3 className="text-lg font-semibold mb-4">Crawled Links</h3>
+    <div className="space-y-4">
+      {crawledLinks.map((link, index) => (
+        <CrawledLinkItem key={index} link={link} />
+      ))}
+    </div>
+  </Card>
+) : (
+  <p>No links available or data is not formatted as expected.</p>
+)}
+
 
       {analysisData && (
         <ResultsDisplay isVisible={true} analysisData={analysisData} />
@@ -202,3 +214,7 @@ const UrlAnalyzer = () => {
 };
 
 export default UrlAnalyzer;
+function setCrawledData(data: any) {
+  throw new Error('Function not implemented.');
+}
+
