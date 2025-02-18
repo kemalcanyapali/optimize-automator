@@ -7,6 +7,8 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from '@/integrations/supabase/client';
 import ResultsDisplay from '@/components/ResultsDisplay';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface CrawlResult {
   id: string;
@@ -21,6 +23,8 @@ interface CrawlResult {
 
 const UrlAnalyzer = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [url, setUrl] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -28,17 +32,21 @@ const UrlAnalyzer = () => {
   const [crawledLinks, setCrawledLinks] = useState<CrawlResult[]>([]);
 
   useEffect(() => {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
     loadCrawlResults();
-  }, []);
+  }, [user, navigate]);
 
   const loadCrawlResults = async () => {
-    try {
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError) throw userError;
+    if (!user) return;
 
+    try {
       const { data, error } = await supabase
         .from('crawl_results')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -58,6 +66,17 @@ const UrlAnalyzer = () => {
 
   const handleAnalysis = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to analyze websites",
+        variant: "destructive",
+      });
+      navigate('/auth');
+      return;
+    }
+
     if (!url) {
       toast({
         title: "Error",
@@ -72,14 +91,6 @@ const UrlAnalyzer = () => {
     setAnalysisData(null);
 
     try {
-      // Get the current user
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError) throw userError;
-      
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-
       const progressInterval = setInterval(() => {
         setProgress(prev => Math.min(prev + 2, 90));
       }, 500);
@@ -124,6 +135,10 @@ const UrlAnalyzer = () => {
       setIsAnalyzing(false);
     }
   };
+
+  if (!user) {
+    return null; // or a loading state if you prefer
+  }
 
   return (
     <div className="space-y-6">
