@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import ResultsDisplay from '@/components/ResultsDisplay';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import axios from 'axios';
 
 interface CrawlResult {
   id: string;
@@ -91,28 +92,31 @@ const UrlAnalyzer = () => {
     setAnalysisData(null);
 
     try {
+      // Start progress animation
       const progressInterval = setInterval(() => {
         setProgress(prev => Math.min(prev + 2, 90));
       }, 500);
 
-      // Mock crawl data for demonstration
-      const mockCrawlData = {
-        title: "Sample Page",
-        content: "Sample content",
-        links: [`${url}/page1`, `${url}/page2`, `${url}/page3`]
+      // Call the crawl API
+      const response = await axios.post('/api/crawl', { url });
+      const crawlData = {
+        title: "Crawled Page",
+        content: "Crawled content",
+        links: response.data.links || []
       };
 
+      // Clear progress animation and set to 100%
       clearInterval(progressInterval);
       setProgress(100);
-      setAnalysisData(mockCrawlData);
+      setAnalysisData(crawlData);
 
-      // Store crawl results in the database with user_id
+      // Store crawl results in Supabase
       const { error: dbError } = await supabase
         .from('crawl_results')
         .insert({
           url,
           user_id: user.id,
-          crawled_data: mockCrawlData
+          crawled_data: crawlData
         });
 
       if (dbError) throw dbError;
@@ -137,7 +141,7 @@ const UrlAnalyzer = () => {
   };
 
   if (!user) {
-    return null; // or a loading state if you prefer
+    return null;
   }
 
   return (
