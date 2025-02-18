@@ -33,13 +33,23 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
   return !user ? <>{children}</> : <Navigate to="/" />;
 }
 
-const AppRoutes = () => (
-  <Routes>
-    <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
-    <Route path="/" element={<PrivateRoute><Index /></PrivateRoute>} />
-    <Route path="*" element={<NotFound />} />
-  </Routes>
-);
+function AppContent() {
+  return (
+    <Routes>
+      <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
+      <Route path="/" element={
+        <PrivateRoute>
+          <div className="min-h-screen bg-gray-100 py-10 flex flex-col items-center">
+            <div className="w-full max-w-3xl px-4">
+              <UrlAnalyzer />
+            </div>
+          </div>
+        </PrivateRoute>
+      } />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}
 
 function App() {
   return (
@@ -49,20 +59,12 @@ function App() {
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
-            {/* You can choose to display UrlAnalyzer either inside or as part of your routes */}
-            <div className="min-h-screen bg-gray-100 py-10 flex flex-col items-center">
-              <div className="w-full max-w-3xl px-4">
-                <UrlAnalyzer />
-                {/* Or, if you have multiple routes, include it as a route in AppRoutes */}
-              </div>
-            </div>
-            {/* <AppRoutes /> */}
+            <AppContent />
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
   );
 }
-
 
 export default App;
